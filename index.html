@@ -370,6 +370,108 @@ a{color:inherit;text-decoration:none}
 
 /* Treemap */
 .tree{display:flex;flex-wrap:wrap;gap:4px;padding:14px 16px;min-height:180px}
+
+/* ================= COMPACT / ONE-SCREEN LAYOUT ================= */
+/* Expert Calculator: 2-column grid on wide screens */
+@media (min-width: 1280px){
+  #view-calculator{
+    display:grid;
+    grid-template-columns:minmax(0,5fr) minmax(0,6fr);
+    column-gap:14px;row-gap:12px;
+    align-items:start;
+    padding-top:16px;padding-bottom:32px;
+  }
+  #view-calculator > .page-head,
+  #view-calculator > .hero,
+  #view-calculator > #costWarning,
+  #view-calculator > .strategy-switcher,
+  #view-calculator > details.advanced-collapse{
+    grid-column:1 / -1;
+    margin-bottom:0;
+  }
+  #view-calculator > #cardMarket{grid-column:1;margin-bottom:0}
+  #view-calculator > .pos-grid  {grid-column:1;margin-bottom:0}
+  #view-calculator > .scn-grid  {grid-column:2;margin-bottom:0}
+  #view-calculator > #cardChart {grid-column:2;margin-bottom:0}
+
+  /* Compact HERO */
+  #view-calculator .page-head{margin-bottom:0}
+  #view-calculator .page-title{font-size:20px}
+  #view-calculator .hero{padding:14px 20px;margin-bottom:0}
+  #view-calculator .hero-value{font-size:30px}
+  #view-calculator .hero-split{margin-top:10px;padding-top:10px;gap:14px}
+  #view-calculator .hero-split-value{font-size:15px}
+
+  /* Compact cards */
+  #view-calculator .card-head{padding:10px 14px}
+  #view-calculator .card-body{padding:12px 14px}
+  #view-calculator .card-title{font-size:12px}
+  #view-calculator .strategy-switcher{margin-bottom:0}
+  #view-calculator .pos-grid{grid-template-columns:1fr;gap:10px}
+  #view-calculator .pos-head{padding:9px 12px}
+  #view-calculator .pos-body{padding:10px 12px}
+  #view-calculator .pos-body .grid{gap:8px}
+  #view-calculator .field-label{font-size:9px}
+  #view-calculator .input,
+  #view-calculator .select{padding:7px 10px;font-size:12px}
+  #view-calculator .meta-panel{padding:8px 10px;margin-top:8px}
+  #view-calculator .meta-row{font-size:10px;padding:2px 0}
+
+  /* Scenarios + Chart compact */
+  #view-calculator .scn-grid{grid-template-columns:1fr 1fr;gap:10px}
+  #view-calculator .scn{padding:10px 12px}
+  #view-calculator .scn-total-v{font-size:18px}
+  #view-calculator .chart-wrap,
+  #view-calculator .chart-wrap.tall{height:200px;padding:10px 12px}
+}
+
+/* Advanced Tools collapse (all breakpoints) */
+details.advanced-collapse{
+  background:var(--bg-1);border:1px solid var(--border);
+  border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);
+}
+details.advanced-collapse > summary{
+  padding:12px 18px;cursor:pointer;list-style:none;
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:13px;font-weight:700;color:var(--text);
+  border-bottom:1px solid transparent;transition:background .15s;
+}
+details.advanced-collapse > summary::-webkit-details-marker{display:none}
+details.advanced-collapse > summary::after{
+  content:"▾";color:var(--text-mute);font-size:11px;transition:transform .2s;
+}
+details.advanced-collapse[open] > summary{border-bottom-color:var(--border)}
+details.advanced-collapse[open] > summary::after{transform:rotate(180deg)}
+details.advanced-collapse > summary:hover{background:var(--bg-2)}
+details.advanced-collapse .card-body{padding:14px 18px}
+details.advanced-collapse .meta{font-size:11px;color:var(--text-mute);font-weight:500}
+
+/* Dashboard: denser KPI grid on wide screens */
+@media (min-width: 1280px){
+  #view-dashboard .kpi-row{grid-template-columns:repeat(9,1fr);gap:8px;margin-bottom:14px}
+  #view-dashboard .kpi{padding:10px 12px}
+  #view-dashboard .kpi-label{font-size:9px;margin-bottom:4px}
+  #view-dashboard .kpi-value{font-size:17px}
+  #view-dashboard .kpi-sub{font-size:9px;margin-top:2px}
+}
+
+/* Simple mode: compact one-screen */
+@media (min-width: 1100px){
+  #view-simple{max-width:980px;padding-top:14px}
+  #view-simple .simple-welcome{padding:4px 0 12px}
+  #view-simple .simple-welcome h1{font-size:20px;margin-bottom:2px}
+  #view-simple .simple-welcome p{font-size:12px}
+  #view-simple .simple-step{padding:14px 16px;margin-bottom:10px;border-radius:12px}
+  #view-simple .simple-step-label{margin-bottom:10px;font-size:12px}
+  #view-simple .simple-strat button{padding:10px 8px;font-size:12px}
+  #view-simple .simple-strat button .ic{font-size:17px}
+  #view-simple .simple-ex-row{margin-bottom:6px}
+  #view-simple .simple-ex-chips button{padding:6px 11px;font-size:11px}
+  #view-simple .simple-field{margin-bottom:12px}
+  #view-simple .simple-field-head{margin-bottom:6px}
+  #view-simple .simple-field-head .v{font-size:15px}
+  #view-simple .simple-exgroup{padding:12px}
+}
 .tree-cell{padding:10px;border-radius:3px;color:var(--text);display:flex;flex-direction:column;justify-content:space-between;font-family:'JetBrains Mono',monospace;min-width:90px;transition:all .15s}
 .tree-cell:hover{transform:scale(1.02)}
 .tree-title{font-size:11px;font-weight:600}
@@ -880,7 +982,7 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
   </div>
 
   <!-- MARKET CONDITIONS (Simple mode 단순화) -->
-  <div class="card" style="margin-bottom:16px">
+  <div class="card" id="cardMarket" style="margin-bottom:16px">
     <div class="card-head">
       <div class="card-title">Market Conditions</div>
       <div class="card-meta mono">BTCUSDT · Perpetual</div>
@@ -1058,14 +1160,14 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
   </div>
 
   <!-- CHART -->
-  <div class="card" style="margin-bottom:16px">
+  <div class="card" id="cardChart" style="margin-bottom:16px">
     <div class="card-head"><div class="card-title">손익 곡선 시뮬레이션</div><div class="card-meta mono">Price Range ±10%</div></div>
     <div class="chart-wrap tall"><canvas id="pnlChart"></canvas></div>
   </div>
 
   <!-- ADVANCED -->
-  <div class="card">
-    <div class="card-head"><div class="card-title">Advanced Tools</div><div class="card-meta">역산 · 물타기 · 임의청산</div></div>
+  <details class="advanced-collapse" id="cardAdvanced">
+    <summary><span>🔧 Advanced Tools <span class="meta">· 역산 · 물타기 · 임의청산</span></span></summary>
     <div class="card-body">
       <div class="tabs">
         <button class="tab active" data-tab="reverse">역산 TP/SL</button>
@@ -1102,7 +1204,7 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
         <div id="arbResult" style="margin-top:14px"></div>
       </div>
     </div>
-  </div>
+  </details>
 
 </div>
 
