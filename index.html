@@ -1026,9 +1026,14 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
           <input class="input mono" type="number" id="holdHours" value="8" step="1" min="0">
         </div>
         <div class="field expert-only">
-          <div class="field-label">펀딩비율 (%/8h) <span class="tt">?<span class="tt-content">8시간마다 부과되는 펀딩비. 양수면 롱→숏 지불. 시장상황에 따라 변동.</span></span></div>
-          <input class="input mono" type="number" id="fundingRate8h" value="0.01" step="0.001">
+          <div class="field-label">펀딩 A (%/8h) <span class="tt">?<span class="tt-content">A 거래소 펀딩비율. 양수면 롱→숏 지불. HEDGE에선 A·B 차이만큼 비용 발생.</span></span></div>
+          <input class="input mono" type="number" id="fundingRateA" value="0.01" step="0.001">
         </div>
+        <div class="field expert-only">
+          <div class="field-label">펀딩 B (%/8h) <span class="tt">?<span class="tt-content">B 거래소 펀딩비율. HEDGE일 때 A와 다르면 차액이 지속 비용으로 쌓임.</span></span></div>
+          <input class="input mono" type="number" id="fundingRateB" value="0.01" step="0.001">
+        </div>
+        <input type="hidden" id="fundingRate8h" value="0.01">
       </div>
 
       <!-- SIMPLE MODE: TP/SL 변동률 슬라이더 -->
@@ -1403,12 +1408,29 @@ const $ = id => document.getElementById(id);
 const val = id => Number($(id).value);
 
 const PRESETS = {
-  bybit:{name:'Bybit',couponMode:'principal-first',feeRate:0.055},
-  bitget:{name:'Bitget',couponMode:'voucher-recall',feeRate:0.06},
-  aiva:{name:'AIVA',couponMode:'simultaneous',feeRate:0.055},
-  mexc:{name:'MEXC',couponMode:'principal-first',feeRate:0.02},
-  custom:{name:'Custom',couponMode:null,feeRate:null}
+  bybit:{name:'Bybit',couponMode:'principal-first',feeRate:0.055,
+    mmrTiers:[[10,0.005],[25,0.010],[50,0.025],[100,0.050]]},
+  bitget:{name:'Bitget',couponMode:'voucher-recall',feeRate:0.06,
+    mmrTiers:[[20,0.005],[50,0.010],[100,0.025]]},
+  aiva:{name:'AIVA',couponMode:'simultaneous',feeRate:0.055,
+    mmrTiers:[[10,0.005],[50,0.010],[100,0.025]]},
+  mexc:{name:'MEXC',couponMode:'principal-first',feeRate:0.02,
+    mmrTiers:[[20,0.004],[50,0.008],[100,0.020]]},
+  custom:{name:'Custom',couponMode:null,feeRate:null,
+    mmrTiers:[[10,0.005],[25,0.010],[50,0.025],[100,0.050]]}
 };
+// leverage → MMR lookup: first tier whose max leverage >= input wins
+function getMMR(exchange,leverage){
+  const p=PRESETS[exchange]||PRESETS.custom;
+  const tiers=p.mmrTiers||[[100,0.005]];
+  for(const [maxLev,mmr] of tiers){ if(leverage<=maxLev) return mmr; }
+  return tiers[tiers.length-1][1];
+}
+// Read active preset key for side 'A' or 'B' from DOM
+function getActivePreset(side){
+  const btn=document.querySelector(`.preset.active[data-side="${side}"]`);
+  return btn?btn.getAttribute('data-preset'):'bybit';
+}
 
 const STORE_KEY='hedgeBonus_v2';
 function loadStore(){
@@ -1713,10 +1735,11 @@ function setStrategy(s){
 /* ================================================
    CALCULATIONS
 ================================================ */
-function calcLiq(side,entry,leverage,posSize,extraCapital){
-  const m=0.005;
+function calcLiq(side,entry,leverage,posSize,extraCapital,exchange){
+  const m=getMMR(exchange||'bybit',leverage);
   const total=posSize+extraCapital;
   const notional=posSize*leverage;
+  if(notional<=0)return entry;
   if(side==='long')return entry*(1-(total/notional)+m);
   return entry*(1+(total/notional)-m);
 }
@@ -1762,6 +1785,8 @@ function gatherInputs(){
     basisSpread:Math.max(0,val('basisSpread')||0),
     holdHours:Math.max(0,val('holdHours')||0),
     fundingRate8h:val('fundingRate8h')||0,
+    fundingRateA:($('fundingRateA')?val('fundingRateA'):val('fundingRate8h'))||0,
+    fundingRateB:($('fundingRateB')?val('fundingRateB'):val('fundingRate8h'))||0,
     A:{margin:val('A_margin'),coupon:val('A_coupon'),posSize:val('A_posSize'),entry:val('A_entry'),tp:val('A_tp'),sl:val('A_sl'),couponMode:$('A_couponMode').value,leverage:levA},
     B:{margin:val('B_margin'),coupon:val('B_coupon'),posSize:val('B_posSize'),entry:val('B_entry'),tp:val('B_tp'),sl:val('B_sl'),couponMode:$('B_couponMode').value,leverage:levB}
   };
@@ -1809,9 +1834,11 @@ function applyPreset(side,preset){
 }
 
 function updatePosMeta(side,pos,sideKind){
-  const liq=calcLiq(sideKind,pos.entry,val('leverage'),pos.posSize,pos.margin+pos.coupon-pos.posSize);
+  const ex=getActivePreset(side);
+  const lev=pos.leverage||val('leverage');
+  const liq=calcLiq(sideKind,pos.entry,lev,pos.posSize,pos.margin+pos.coupon-pos.posSize,ex);
   $(`${side}_liq`).textContent=fmt(liq,1);
-  $(`${side}_notional`).textContent=fmt(pos.posSize*val('leverage'),0)+' USDT';
+  $(`${side}_notional`).textContent=fmt(pos.posSize*lev,0)+' USDT';
   const safety=sideKind==='long'?((pos.sl-liq)/pos.entry)*100:((liq-pos.sl)/pos.entry)*100;
   $(`${side}_safety`).textContent=fmt(safety,2)+'%';
   const tpPct=sideKind==='long'?((pos.tp-pos.entry)/pos.entry)*100:((pos.entry-pos.tp)/pos.entry)*100;
@@ -1839,15 +1866,19 @@ function calcExtraCosts(i,numSides,strategy){
   // Funding cost: signed. Positive rate → LONG pays SHORT. Negative rate → SHORT pays LONG.
   // HEDGE: one leg pays, other receives → net ≈ 0 (ignoring basis/exchange differences).
   const periods=i.holdHours/8;
-  const rate=i.fundingRate8h/100;
+  const rateA=(i.fundingRateA||0)/100;
+  const rateB=(i.fundingRateB||0)/100;
   let fundCost=0;
   if(strategy==='hedge'){
-    // A is LONG (pays when rate>0), B is SHORT (receives when rate>0). Cross-exchange → assume rates identical.
-    fundCost=0;
+    // A LONG: pays rateA when rateA>0. B SHORT: pays -rateB when rateB<0, receives rateB when rateB>0.
+    // Net cost = A_notional * rateA  -  B_notional * rateB (양수면 net 지출)
+    const payA=(i.A.posSize||0)*i.A.leverage*rateA*periods;
+    const recvB=(i.B.posSize||0)*i.B.leverage*rateB*periods;
+    fundCost=payA-recvB;
   }else if(strategy==='long'){
-    fundCost=(i.A.posSize||0)*i.A.leverage*rate*periods; // positive if long pays
+    fundCost=(i.A.posSize||0)*i.A.leverage*rateA*periods;
   }else if(strategy==='short'){
-    fundCost=-(i.B.posSize||0)*i.B.leverage*rate*periods; // short pays when rate<0
+    fundCost=-(i.B.posSize||0)*i.B.leverage*rateB*periods;
   }
   return {basisCost,fundCost,total:basisCost+fundCost};
 }
@@ -2060,14 +2091,14 @@ function renderChart(i,strategy){
     landmarks.push({price:i.A.entry,color:'#00d4ff',label:'A·ENT'});
     landmarks.push({price:i.A.tp,color:'#00e394',label:'A·TP'});
     landmarks.push({price:i.A.sl,color:'#ff4d5e',label:'A·SL'});
-    const liqA=calcLiq('long',i.A.entry,i.A.leverage,i.A.posSize,i.A.margin+i.A.coupon-i.A.posSize);
+    const liqA=calcLiq('long',i.A.entry,i.A.leverage,i.A.posSize,i.A.margin+i.A.coupon-i.A.posSize,getActivePreset('A'));
     landmarks.push({price:liqA,color:'#ffb020',label:'A·LIQ'});
   }
   if(strategy==='hedge'||strategy==='short'){
     landmarks.push({price:i.B.entry,color:'#ff3d8e',label:'B·ENT'});
     landmarks.push({price:i.B.tp,color:'#00e394',label:'B·TP'});
     landmarks.push({price:i.B.sl,color:'#ff4d5e',label:'B·SL'});
-    const liqB=calcLiq('short',i.B.entry,i.B.leverage,i.B.posSize,i.B.margin+i.B.coupon-i.B.posSize);
+    const liqB=calcLiq('short',i.B.entry,i.B.leverage,i.B.posSize,i.B.margin+i.B.coupon-i.B.posSize,getActivePreset('B'));
     landmarks.push({price:liqB,color:'#ffb020',label:'B·LIQ'});
   }
 
