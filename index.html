@@ -377,22 +377,27 @@ a{color:inherit;text-decoration:none}
   #view-calculator.active{
     display:grid !important;
     grid-template-columns:minmax(0,5fr) minmax(0,6fr);
+    grid-template-areas:
+      "head head"
+      "hero hero"
+      "warn warn"
+      "strat strat"
+      "market scn"
+      "posgrid chart"
+      "adv adv";
     column-gap:14px;row-gap:12px;
     align-items:start;
     padding-top:16px;padding-bottom:32px;
   }
-  #view-calculator > .page-head,
-  #view-calculator > .hero,
-  #view-calculator > #costWarning,
-  #view-calculator > .strategy-switcher,
-  #view-calculator > details.advanced-collapse{
-    grid-column:1 / -1 !important;
-    margin-bottom:0 !important;
-  }
-  #view-calculator > #cardMarket{grid-column:1 !important;margin-bottom:0 !important}
-  #view-calculator > .pos-grid  {grid-column:1 !important;margin-bottom:0 !important}
-  #view-calculator > .scn-grid  {grid-column:2 !important;margin-bottom:0 !important}
-  #view-calculator > #cardChart {grid-column:2 !important;margin-bottom:0 !important}
+  #view-calculator > .page-head          {grid-area:head !important;margin-bottom:0 !important}
+  #view-calculator > .hero               {grid-area:hero !important;margin-bottom:0 !important}
+  #view-calculator > #costWarning        {grid-area:warn !important;margin-bottom:0 !important}
+  #view-calculator > .strategy-switcher  {grid-area:strat !important;margin-bottom:0 !important}
+  #view-calculator > #cardMarket         {grid-area:market !important;margin-bottom:0 !important}
+  #view-calculator > .pos-grid           {grid-area:posgrid !important;margin-bottom:0 !important}
+  #view-calculator > .scn-grid           {grid-area:scn !important;margin-bottom:0 !important}
+  #view-calculator > #cardChart          {grid-area:chart !important;margin-bottom:0 !important}
+  #view-calculator > details.advanced-collapse {grid-area:adv !important;margin-bottom:0 !important}
 
   /* Compact HERO */
   #view-calculator .page-head{margin-bottom:0}
