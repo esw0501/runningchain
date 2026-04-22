@@ -383,7 +383,8 @@ a{color:inherit;text-decoration:none}
       "warn warn"
       "strat strat"
       "market scn"
-      "posgrid chart"
+      "posgrid posgrid"
+      "chart chart"
       "adv adv";
     column-gap:14px;row-gap:12px;
     align-items:start;
@@ -412,7 +413,7 @@ a{color:inherit;text-decoration:none}
   #view-calculator .card-body{padding:12px 14px}
   #view-calculator .card-title{font-size:12px}
   #view-calculator .strategy-switcher{margin-bottom:0}
-  #view-calculator .pos-grid{grid-template-columns:1fr;gap:10px}
+  #view-calculator .pos-grid{grid-template-columns:1fr 1fr;gap:10px}
   #view-calculator .pos-head{padding:9px 12px}
   #view-calculator .pos-body{padding:10px 12px}
   #view-calculator .pos-body .grid{gap:8px}
@@ -428,6 +429,12 @@ a{color:inherit;text-decoration:none}
   #view-calculator .scn-total-v{font-size:18px}
   #view-calculator .chart-wrap,
   #view-calculator .chart-wrap.tall{height:200px;padding:10px 12px}
+}
+@media(min-width:1600px){
+  #view-calculator.active{max-width:1480px;margin-left:auto;margin-right:auto;padding-left:24px;padding-right:24px}
+}
+@media(min-width:1900px){
+  #view-calculator.active{max-width:1680px;padding-left:40px;padding-right:40px}
 }
 
 /* Advanced Tools collapse (all breakpoints) */
@@ -634,6 +641,12 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
   .simple-result-value{font-size:34px}
   .simple-welcome h1{font-size:22px}
 }
+.rr-timeline{position:relative;height:48px;margin-top:14px;padding:0 12px}
+.rr-bar{position:absolute;top:10px;left:12px;right:12px;height:2px;background:linear-gradient(90deg,#ff3d6e 0%,#ffb020 25%,#8795b3 50%,#00d4ff 75%,#00e394 100%);opacity:.35;border-radius:2px}
+.rr-mk{position:absolute;top:0;transform:translateX(-50%);text-align:center;pointer-events:none;width:48px}
+.rr-dot{width:9px;height:9px;border-radius:50%;background:var(--c);margin:6px auto 0;box-shadow:0 0 0 2px rgba(0,0,0,.5)}
+.rr-lbl{font-size:8px;letter-spacing:.08em;color:var(--c);margin-top:4px;font-weight:700;line-height:1.3}
+.rr-lbl span{display:block;color:var(--text-dim);font-weight:500;font-family:monospace;letter-spacing:0;font-size:9px}
 </style>
 </head>
 <body>
@@ -655,6 +668,7 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
       <button class="icon-btn" aria-label="JSON 내보내기" title="JSON 내보내기" onclick="exportJSON()">⬇</button>
       <button class="icon-btn" aria-label="JSON 불러오기" title="JSON 불러오기" onclick="$('importFile').click()">⬆</button>
       <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)" aria-label="JSON 파일 선택">
+      <a class="icon-btn" aria-label="사용 설명서" title="사용 설명서" href="manual.html" target="_blank" style="text-decoration:none">📖</a>
       <button class="icon-btn" aria-label="설정 열기" title="설정" onclick="openModal('mSettings')">⚙</button>
     </div>
   </div>
@@ -1036,6 +1050,24 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
         <input type="hidden" id="fundingRate8h" value="0.01">
       </div>
 
+      <!-- Safety Buffer + Notional Match (Phase3-B2) -->
+      <div class="grid g2" style="margin-top:12px">
+        <div class="field">
+          <div class="field-label">안전 버퍼 (%) <span class="tt">?<span class="tt-content">SL과 청산가 사이 최소 여유. SL이 청산가에 너무 가까우면 빨간색 경고. 권장 1% 이상.</span></span></div>
+          <div class="slider-row">
+            <input type="range" class="slider" id="safetyBuffer" min="0" max="5" step="0.1" value="1" oninput="$('safetyBufferVal').textContent=this.value+'%';calculate()">
+            <span class="slider-val mono" id="safetyBufferVal">1%</span>
+          </div>
+        </div>
+        <div class="field" id="notionalMatchField">
+          <div class="field-label">포지션 자동 일치 (HEDGE) <span class="tt">?<span class="tt-content">A와 B의 노셔널(원금×레버리지)을 같게 유지. 한쪽만 커지면 헤지가 깨져서 무위험이 아니게 됩니다.</span></span></div>
+          <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;cursor:pointer">
+            <input type="checkbox" id="notionalMatch" onchange="onNotionalMatch()" style="width:16px;height:16px">
+            <span style="font-size:12px">A·B 노셔널 자동 동기화</span>
+          </label>
+        </div>
+      </div>
+
       <!-- SIMPLE MODE: TP/SL 변동률 슬라이더 -->
       <div id="simpleControls" style="margin-top:16px">
         <div class="grid g2">
@@ -1095,6 +1127,7 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
           <div class="meta-row"><span>청산가 안전마진</span><b id="A_safety">—</b></div>
           <div class="meta-row"><span>TP/SL 변동률</span><b id="A_tpSlPct">—</b></div>
           <div class="meta-row"><span>브레이크이븐</span><b id="A_be">—</b></div>
+          <div class="rr-timeline" id="A_rr"></div>
         </div>
       </div>
     </div>
@@ -1133,6 +1166,7 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
           <div class="meta-row"><span>청산가 안전마진</span><b id="B_safety">—</b></div>
           <div class="meta-row"><span>TP/SL 변동률</span><b id="B_tpSlPct">—</b></div>
           <div class="meta-row"><span>브레이크이븐</span><b id="B_be">—</b></div>
+          <div class="rr-timeline" id="B_rr"></div>
         </div>
       </div>
     </div>
@@ -1183,6 +1217,8 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
         <button class="tab active" data-tab="reverse">역산 TP/SL</button>
         <button class="tab" data-tab="water">물타기/불타기</button>
         <button class="tab" data-tab="arb">임의 청산</button>
+        <button class="tab" data-tab="survive">A 생존 시나리오</button>
+        <button class="tab" data-tab="winrate">승률 추정</button>
       </div>
 
       <div class="tab-panel active" id="panel-reverse">
@@ -1212,6 +1248,26 @@ a:focus-visible{outline:2px solid var(--long);outline-offset:2px;border-radius:2
           <div class="field"><button class="btn btn-primary" onclick="arbCalc()">SIMULATE ▶</button></div>
         </div>
         <div id="arbResult" style="margin-top:14px"></div>
+      </div>
+
+      <div class="tab-panel" id="panel-survive">
+        <div style="font-size:11px;color:var(--text-mute);margin-bottom:10px">B거래소(쿠폰지급)가 청산된다고 가정하고, A거래소에서 얼마까지 수익을 내야 전체 본전인지 계산합니다.</div>
+        <div class="grid g3" style="align-items:end">
+          <div class="field"><div class="field-label">B 가정 청산가</div><input class="input mono" type="number" id="sv_bLiq" value="78000" step="0.1"></div>
+          <div class="field"><div class="field-label">A 추가 물타기 (USDT)</div><input class="input mono" type="number" id="sv_addMargin" value="0" step="100"></div>
+          <div class="field"><button class="btn btn-primary" onclick="survivalCalc()">SIMULATE ▶</button></div>
+        </div>
+        <div id="survivalResult" style="margin-top:14px"></div>
+      </div>
+
+      <div class="tab-panel" id="panel-winrate">
+        <div style="font-size:11px;color:var(--text-mute);margin-bottom:10px">쿠폰이 방어하는 가격 범위와, 그 밖으로 벗어날 확률을 변동성 기반으로 추정합니다.</div>
+        <div class="grid g3" style="align-items:end">
+          <div class="field"><div class="field-label">일 변동성 σ (%)</div><input class="input mono" type="number" id="wr_vol" value="2.5" step="0.1" min="0.1"></div>
+          <div class="field"><div class="field-label">보유 기간 (일)</div><input class="input mono" type="number" id="wr_days" value="1" step="0.5" min="0.1"></div>
+          <div class="field"><button class="btn btn-primary" onclick="winRateCalc()">ESTIMATE ▶</button></div>
+        </div>
+        <div id="winRateResult" style="margin-top:14px"></div>
       </div>
     </div>
   </details>
@@ -1824,6 +1880,21 @@ function onTotalFund(){
   calculate();
 }
 
+function onNotionalMatch(){
+  if($('notionalMatch')?.checked && state.strategy==='hedge'){
+    syncNotional();
+  }
+  calculate();
+}
+function syncNotional(){
+  const aPos=Number($('A_posSize').value)||0;
+  const aLev=Number($('A_leverage').value)||1;
+  const bLev=Number($('B_leverage').value)||1;
+  const targetB=aPos*aLev/bLev;
+  $('B_posSize').value=targetB.toFixed(2);
+  $('B_margin').value=targetB.toFixed(2);
+}
+
 function applyPreset(side,preset){
   document.querySelectorAll(`.preset[data-side="${side}"]`).forEach(b=>b.classList.remove('active'));
   document.querySelector(`.preset[data-side="${side}"][data-preset="${preset}"]`).classList.add('active');
@@ -1840,7 +1911,10 @@ function updatePosMeta(side,pos,sideKind){
   $(`${side}_liq`).textContent=fmt(liq,1);
   $(`${side}_notional`).textContent=fmt(pos.posSize*lev,0)+' USDT';
   const safety=sideKind==='long'?((pos.sl-liq)/pos.entry)*100:((liq-pos.sl)/pos.entry)*100;
-  $(`${side}_safety`).textContent=fmt(safety,2)+'%';
+  const buf=Number($('safetyBuffer')?.value||0);
+  const el=$(`${side}_safety`);
+  el.textContent=fmt(safety,2)+'%';
+  el.style.color=safety<buf?'var(--neg,#ff3d6e)':safety<buf*1.5?'var(--warn,#ffb020)':'var(--pos,#00e394)';
   const tpPct=sideKind==='long'?((pos.tp-pos.entry)/pos.entry)*100:((pos.entry-pos.tp)/pos.entry)*100;
   const slPct=sideKind==='long'?((pos.sl-pos.entry)/pos.entry)*100:((pos.entry-pos.sl)/pos.entry)*100;
   $(`${side}_tpSlPct`).textContent=fmtS(tpPct,2)+'% / '+fmtS(slPct,2)+'%';
@@ -1848,9 +1922,26 @@ function updatePosMeta(side,pos,sideKind){
   const feeEff=val('feeRate')/100*2;
   const be=sideKind==='long'?pos.entry*(1+feeEff):pos.entry*(1-feeEff);
   $(`${side}_be`).textContent=fmt(be,1);
+  renderRR(side,sideKind,{liq,sl:pos.sl,be,entry:pos.entry,tp:pos.tp});
+}
+
+function renderRR(side,kind,p){
+  const el=$(`${side}_rr`); if(!el) return;
+  const pts=kind==='long'
+    ?[{k:'LIQ',v:p.liq,c:'#ff3d6e'},{k:'SL',v:p.sl,c:'#ffb020'},{k:'BE',v:p.be,c:'#8795b3'},{k:'ENTRY',v:p.entry,c:'#00d4ff'},{k:'TP',v:p.tp,c:'#00e394'}]
+    :[{k:'TP',v:p.tp,c:'#00e394'},{k:'ENTRY',v:p.entry,c:'#00d4ff'},{k:'BE',v:p.be,c:'#8795b3'},{k:'SL',v:p.sl,c:'#ffb020'},{k:'LIQ',v:p.liq,c:'#ff3d6e'}];
+  const vals=pts.map(x=>x.v).filter(x=>isFinite(x));
+  if(!vals.length){el.innerHTML='';return;}
+  const lo=Math.min(...vals),hi=Math.max(...vals),span=hi-lo||1;
+  const markers=pts.map(x=>{
+    const pct=((x.v-lo)/span)*100;
+    return `<div class="rr-mk" style="left:${pct}%;--c:${x.c}"><div class="rr-dot"></div><div class="rr-lbl">${x.k}<br><span>${fmt(x.v,1)}</span></div></div>`;
+  }).join('');
+  el.innerHTML=`<div class="rr-bar"></div>${markers}`;
 }
 
 function calculate(){
+  if($('notionalMatch')?.checked && state.strategy==='hedge') syncNotional();
   const i=gatherInputs();
   if(state.strategy==='hedge')return calculateHedge(i);
   if(state.strategy==='long')return calculateSingle(i,'A','long');
@@ -2165,6 +2256,77 @@ function applyWater(s,np,ne,nm){
   $(`${s}_posSize`).value=np.toFixed(2);$(`${s}_entry`).value=ne.toFixed(2);$(`${s}_margin`).value=nm.toFixed(2);
   calculate();toast('물타기 반영 완료','ok');
 }
+function survivalCalc(){
+  const i=gatherInputs();
+  const bLiq=val('sv_bLiq');
+  const addM=val('sv_addMargin')||0;
+  // B 청산 시 손실: B는 SHORT이므로 가격 상승분 손실
+  const bR=calcPnl('short',i.B.entry,bLiq,i.B.posSize,i.B.leverage,i.feeRate);
+  let bNet;
+  if(bR.gross>=0){bNet=bR.gross-bR.fee;}
+  else{const d=distributeLoss(Math.abs(bR.gross),i.B.margin,i.B.coupon,i.B.couponMode);bNet=-d.realLoss-bR.fee;}
+  // A 필요 순수익: B 손실 + 전체 수수료 커버
+  const need=-bNet;
+  // A 물타기 후 평단: 추가 증거금을 현재가(기준가)에서 진입한다 가정
+  const addEntry=i.refPrice||i.A.entry;
+  const newPos=i.A.posSize+addM;
+  const newEntry=newPos>0?((i.A.posSize*i.A.entry+addM*addEntry)/newPos):i.A.entry;
+  const newNotional=newPos*i.A.leverage;
+  // A 필요 가격 상승률 = need / newNotional
+  const reqPct=newNotional>0?(need/newNotional)*100:0;
+  const reqPrice=newEntry*(1+reqPct/100);
+  const color=reqPct<5?'var(--profit)':reqPct<15?'var(--warn)':'var(--loss)';
+  $('survivalResult').innerHTML=`<div class="card" style="background:var(--bg-2);padding:12px;font-size:12px;line-height:1.8;border-left:2px solid ${color}">
+    <b>B 청산 @ ${fmt(bLiq,1)}</b> · 순손실 <b style="color:var(--loss)">${fmtS(bNet)}</b> USDT<br>
+    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+    A 조정 결과 (물타기 ${fmt(addM)} USDT):<br>
+    • 신규 평단: <b>${fmt(newEntry,2)}</b> USDT (기존 ${fmt(i.A.entry,1)})<br>
+    • 총 포지션: <b>${fmt(newPos)}</b> USDT · 노셔널 ${fmt(newNotional,0)}<br>
+    • 본전까지 A 필요 상승: <b style="color:${color}">+${fmt(reqPct,3)}%</b> → 목표가 <b>${fmt(reqPrice,1)}</b><br>
+    <div style="margin-top:8px;font-size:11px;color:var(--text-mute)">
+    ${reqPct<5?'✅ 무난한 회복 범위':reqPct<15?'⚠ 회복 가능하나 시간 소요':'🔴 고강도 역행 — 추가 물타기 필요'}
+    </div>
+  </div>`;
+}
+
+function normCdf(x){
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const sign=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);
+  const t=1/(1+p*x);
+  const y=1-(((((a5*t+a4)*t)+a3)*t+a2)*t+a1)*t*Math.exp(-x*x);
+  return 0.5*(1+sign*y);
+}
+
+function winRateCalc(){
+  const i=gatherInputs();
+  const sigma=val('wr_vol'),days=val('wr_days');
+  const ref=i.refPrice||i.A.entry;
+  // 쿠폰 방어 범위 = (쿠폰A + 쿠폰B) / (포지션*레버리지 평균)
+  const couponTotal=(i.A.coupon||0)+(i.B.coupon||0);
+  const notA=(i.A.posSize||0)*(i.A.leverage||1);
+  const notB=(i.B.posSize||0)*(i.B.leverage||1);
+  const avgNot=(notA+notB)/2;
+  const defencePct=avgNot>0?(couponTotal/avgNot)*100:0;
+  // 기간 변동성
+  const totalVol=sigma*Math.sqrt(days);
+  // 방어범위 밖 도달 확률 (양쪽 합)
+  const z=totalVol>0?defencePct/totalVol:0;
+  const pBeyond=2*(1-normCdf(z))*100;
+  const pInside=100-pBeyond;
+  const color=pInside>80?'var(--profit)':pInside>60?'var(--warn)':'var(--loss)';
+  $('winRateResult').innerHTML=`<div class="card" style="background:var(--bg-2);padding:12px;font-size:12px;line-height:1.8;border-left:2px solid ${color}">
+    <b>쿠폰 방어 범위</b>: 기준가 ±<b style="color:var(--profit)">${fmt(defencePct,2)}%</b> (쿠폰 ${fmt(couponTotal)} USDT ÷ 평균 노셔널 ${fmt(avgNot,0)})<br>
+    <b>기간 변동성</b> (σ √t): <b>${fmt(totalVol,2)}%</b> (일σ ${fmt(sigma,1)}% × √${days}일)<br>
+    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+    <div style="font-size:13px">방어범위 내 유지 확률: <b style="color:${color};font-size:16px">${fmt(pInside,1)}%</b></div>
+    <div style="font-size:11px;color:var(--text-mute);margin-top:4px">이탈 확률 ${fmt(pBeyond,1)}% — 이 경우 쿠폰을 넘는 손실 발생 가능</div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text-mute)">
+    ${pInside>80?'✅ 높은 확률로 안전':pInside>60?'⚠ 중간 — 변동성 커질 경우 방어 불충분':'🔴 이 설정은 쿠폰이 방어 못함 · 원금 증액 또는 기간 단축 필요'}
+    </div>
+    <div style="margin-top:6px;font-size:10px;color:var(--text-mute)">※ 기하브라운 근사. BTC 30일 평균 σ ≈ 2–3%. 극단구간은 실제보다 확률 낮게 표시됨(fat-tail 미반영)</div>
+  </div>`;
+}
+
 function arbCalc(){
   const i=gatherInputs(),a=val('arb_A'),b=val('arb_B');
   const aR=calcPnl('long',i.A.entry,a,i.A.posSize,i.A.leverage,i.feeRate);
