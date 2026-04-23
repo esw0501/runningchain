@@ -1,0 +1,9 @@
+anthropic>=0.40.0
+google-genai>=1.0.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+Flask>=3.0.0
+pandas>=2.2.0
+ta>=0.11.0
+TA-Lib>=0.4.32
+feedparser>=6.0.0
